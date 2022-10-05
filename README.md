@@ -23,7 +23,7 @@ This repository enables keepers of the Keep3r Network to execute Maker's jobs on
 5. Try out the scripts
 
 ```
-  yarn start:upkeep
+  yarn start
 ```
 
 ## Run in production
