@@ -230,7 +230,7 @@ async function tryToWorkJob(job: Contract, block: Block, flashbots: Flashbots) {
   const txs: TransactionRequest[] = await populateTransactions({
     chainId: CHAIN_ID,
     contract: upkeepJob,
-    functionArgs: [[args]],
+    functionArgs: [[job.address, args]],
     functionName: 'work',
     options,
   });
