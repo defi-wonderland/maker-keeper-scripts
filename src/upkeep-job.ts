@@ -264,7 +264,7 @@ async function tryToWorkJob(job: Contract, block: Block, flashbots: Flashbots) {
 
     // If the bundle was included, we console log the success
     if (result) console.log('===== Tx SUCCESS =====', job.address);
-  } catch(error) {
+  } catch (error) {
     console.log(error);
   } finally {
     // We also need to set the job as not in progress anymore.
