@@ -140,10 +140,11 @@ async function run(flashbots: Flashbots) {
       }
 
       // If inside of the work window, the script will iterate through each job and try to work it using the tryToWorkJob method.
-      for (const jobAddress of Object.keys(jobs)) {
+      const jobWorkPromises = Object.keys(jobs).map(async (jobAddress) => {
         const job = new ethers.Contract(jobAddress, MAKER_JOB_ABI_LIKE, txSigner);
-        tryToWorkJob(job, block, flashbots);
-      }
+        return tryToWorkJob(job, block, flashbots);
+      });
+      await Promise.all(jobWorkPromises);
     });
   }, time);
 }
