@@ -188,84 +188,89 @@ async function tryToWorkJob(job: Contract, block: Block, flashbots: Flashbots) {
   // Sets the job as in progress since at this point it means that the job is not being worked and is workable.
   jobWorkInProgress[job.address] = true;
 
-  // Get the signer's (keeper) current nonce
-  const currentNonce = await provider.getTransactionCount(txSigner.address);
+  try {
+    // Get the signer's (keeper) current nonce
+    const currentNonce = await provider.getTransactionCount(txSigner.address);
 
-  /*
-			We are going to send this through Flashbots, which means we will be sending multiple bundles to different
-			blocks inside a batch. Here we are calculating which will be the last block of our batch of bundles.
-			This information is needed to calculate what will the maximum possible base fee be in that block, so we can
-			calculate the maxFeePerGas parameter for all our transactions.
-			For example: we are in block 100 and we send to 100, 101, 102. We would like to know what is the maximum possible
-			base fee at block 102 to make sure we don't populate our transactions with a very low maxFeePerGas, as this would
-			cause our transaction to not be mined until the max base fee lowers.
-	*/
-  const blocksAhead = FUTURE_BLOCKS + BURST_SIZE;
+    /*
+        We are going to send this through Flashbots, which means we will be sending multiple bundles to different
+        blocks inside a batch. Here we are calculating which will be the last block of our batch of bundles.
+        This information is needed to calculate what will the maximum possible base fee be in that block, so we can
+        calculate the maxFeePerGas parameter for all our transactions.
+        For example: we are in block 100 and we send to 100, 101, 102. We would like to know what is the maximum possible
+        base fee at block 102 to make sure we don't populate our transactions with a very low maxFeePerGas, as this would
+        cause our transaction to not be mined until the max base fee lowers.
+    */
+    const blocksAhead = FUTURE_BLOCKS + BURST_SIZE;
 
-  // Fetch the priorityFeeInGwei and maxFeePerGas parameters from the getMainnetGasType2Parameters function
-  // NOTE: this just returns our priorityFee in GWEI, it doesn't calculate it, so if we pass a priority fee of 10 wei
-  //       this will return a priority fee of 10 GWEI. We need to pass it so that it properly calculated the maxFeePerGas
-  const {priorityFeeInGwei, maxFeePerGas} = getMainnetGasType2Parameters({
-    block,
-    blocksAhead,
-    priorityFeeInWei: PRIORITY_FEE,
-  });
+    // Fetch the priorityFeeInGwei and maxFeePerGas parameters from the getMainnetGasType2Parameters function
+    // NOTE: this just returns our priorityFee in GWEI, it doesn't calculate it, so if we pass a priority fee of 10 wei
+    //       this will return a priority fee of 10 GWEI. We need to pass it so that it properly calculated the maxFeePerGas
+    const {priorityFeeInGwei, maxFeePerGas} = getMainnetGasType2Parameters({
+      block,
+      blocksAhead,
+      priorityFeeInWei: PRIORITY_FEE,
+    });
 
-  // We declare what options we would like our transaction to have
-  const options: Overrides = {
-    gasLimit: 5_000_000,
-    nonce: currentNonce,
-    maxFeePerGas,
-    maxPriorityFeePerGas: priorityFeeInGwei,
-    type: 2,
-  };
+    // We declare what options we would like our transaction to have
+    const options: Overrides = {
+      gasLimit: 5_000_000,
+      nonce: currentNonce,
+      maxFeePerGas,
+      maxPriorityFeePerGas: priorityFeeInGwei,
+      type: 2,
+    };
 
-  // We calculate the first block that the first bundle in our batch will target.
-  // Example, if future blocks is 2, and we are in block 100, it will send a bundle to blocks 102, 103, 104 (assuming a burst size of 3)
-  // and 102 would be the firstBlockOfBatch
-  const firstBlockOfBatch = block.number + FUTURE_BLOCKS;
+    // We calculate the first block that the first bundle in our batch will target.
+    // Example, if future blocks is 2, and we are in block 100, it will send a bundle to blocks 102, 103, 104 (assuming a burst size of 3)
+    // and 102 would be the firstBlockOfBatch
+    const firstBlockOfBatch = block.number + FUTURE_BLOCKS;
 
-  // We populate the transactions we will use in our bundles. Notice we are calling the upkeepJob's work function
-  // with the args that the job.workable function gaves us.
-  const txs: TransactionRequest[] = await populateTransactions({
-    chainId: CHAIN_ID,
-    contract: upkeepJob,
-    functionArgs: [[args]],
-    functionName: 'work',
-    options,
-  });
+    // We populate the transactions we will use in our bundles. Notice we are calling the upkeepJob's work function
+    // with the args that the job.workable function gaves us.
+    const txs: TransactionRequest[] = await populateTransactions({
+      chainId: CHAIN_ID,
+      contract: upkeepJob,
+      functionArgs: [[job.address, args]],
+      functionName: 'work',
+      options,
+    });
 
-  /*
-		We create our batch of bundles. In this case this will be a batch of two bundles that will contain the same transaction.
-	*/
-  const bundles = createBundlesWithSameTxs({
-    unsignedTxs: txs,
-    burstSize: BURST_SIZE,
-    firstBlockOfBatch,
-  });
+    /*
+      We create our batch of bundles. In this case this will be a batch of two bundles that will contain the same transaction.
+    */
+    const bundles = createBundlesWithSameTxs({
+      unsignedTxs: txs,
+      burstSize: BURST_SIZE,
+      firstBlockOfBatch,
+    });
 
-  /*
-		We send our batch of bundles and recreate new ones until we work it or our work window finishes.
-		It's also worth noting that for ease of debugging we are passing the job address as static id, and a random 5 digit id to identify each batch.
-		Each batch would look something like this in the console: JOB_ADDRESS#12345
-	*/
-  const result = await sendAndRetryUntilNotWorkable({
-    txs,
-    provider,
-    priorityFeeInWei: PRIORITY_FEE,
-    signer: txSigner,
-    bundles,
-    newBurstSize: BURST_SIZE,
-    flashbots,
-    isWorkableCheck: () => job.workable(KEEP3R_NETWORK_TAG),
-    staticDebugId: job.address,
-    dynamicDebugId: makeid(5),
-  });
+    /*
+      We send our batch of bundles and recreate new ones until we work it or our work window finishes.
+      It's also worth noting that for ease of debugging we are passing the job address as static id, and a random 5 digit id to identify each batch.
+      Each batch would look something like this in the console: JOB_ADDRESS#12345
+    */
+    const result = await sendAndRetryUntilNotWorkable({
+      txs,
+      provider,
+      priorityFeeInWei: PRIORITY_FEE,
+      signer: txSigner,
+      bundles,
+      newBurstSize: BURST_SIZE,
+      flashbots,
+      isWorkableCheck: () => job.workable(KEEP3R_NETWORK_TAG),
+      staticDebugId: job.address,
+      dynamicDebugId: makeid(5),
+    });
 
-  // If the bundle was included, we console log the success
-  if (result) console.log('===== Tx SUCCESS =====', job.address);
-  // We also need to set the job as not in progress anymore.
-  jobWorkInProgress[job.address] = false;
+    // If the bundle was included, we console log the success
+    if (result) console.log('===== Tx SUCCESS =====', job.address);
+  } catch (error: unknown) {
+    console.error(error);
+  } finally {
+    // We also need to set the job as not in progress anymore.
+    jobWorkInProgress[job.address] = false;
+  }
 }
 
 /**
