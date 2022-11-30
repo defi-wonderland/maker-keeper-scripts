@@ -7,7 +7,7 @@ on:
 
 jobs:
   sync:
-		if: github.repository == 'defi-wonderland/maker-keeper-scripts-private'
+    if: github.repository == 'defi-wonderland/maker-keeper-scripts-private'
     runs-on: ubuntu-latest
     steps:
       - name: Check out github repository
