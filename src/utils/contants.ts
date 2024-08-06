@@ -12,8 +12,8 @@ export const FUTURE_BLOCKS = 0;
 // Priority fee to use
 export const PRIORITY_FEE = 2.1;
 
-// Flashbots RPC. Taken from https://docs.flashbots.net
-export const FLASHBOTS_RPC = 'https://relay.flashbots.net';
+// Flashbots RPCs.
+export const FLASHBOTS_RPCS = ['https://rpc.titanbuilder.xyz/', 'https://rpc.beaverbuild.org/'];
 
 // Set the keeper name identifier to use in the sequencer and upkeep job contracts. This is used by the contract
 // to identify a specific keeper. This is stored in bytes32 in the contracts.
