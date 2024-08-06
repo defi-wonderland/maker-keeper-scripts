@@ -5,7 +5,16 @@ import dotenv from 'dotenv';
 import type {BigNumber} from 'ethers';
 import {Contract, providers, Wallet} from 'ethers';
 import {defaultAbiCoder} from 'ethers/lib/utils';
-import {BLOCK_DURATION, FLASHBOTS_RPCS, KEEP3R_NETWORK_TAG, MAKER_JOB_ABI_LIKE, PRIORITY_FEE, TOLERANCE_THRESHOLD} from './utils/contants';
+import {
+  BLOCK_DURATION,
+  FLASHBOTS_RPCS,
+  GAS_LIMIT,
+  KEEP3R_NETWORK_TAG,
+  MAKER_JOB_ABI_LIKE,
+  PRIORITY_FEE,
+  TOLERANCE_THRESHOLD,
+  CHAIN_ID,
+} from './utils/contants';
 import {calculateNextMainWindow} from './utils/misc';
 import type {Address} from './utils/types';
 
@@ -43,14 +52,13 @@ const jobs: Record<Address, UnsubscribeFunction | undefined> = {};
   // Environment variables usage
   const provider = new providers.JsonRpcProvider(getEnvVariable('RPC_HTTP_MAINNET_URI'));
   const txSigner = new Wallet(getEnvVariable('TX_SIGNER_PRIVATE_KEY'), provider);
-  const chainId = 1;
 
   // Instantiates the contracts
   const upkeepJob = getMainnetSdk(txSigner).upkeepJob;
   const sequencer = getMainnetSdk(txSigner).sequencer;
 
   // Instantiates the broadcastor
-  const broadcastor = new PrivateBroadcastor(FLASHBOTS_RPCS, PRIORITY_FEE, 10_000_000, true, chainId);
+  const broadcastor = new PrivateBroadcastor(FLASHBOTS_RPCS, PRIORITY_FEE, GAS_LIMIT, true, CHAIN_ID);
 
   // Run the script
   await run(upkeepJob, sequencer, provider, 'work', broadcastor.tryToWork.bind(broadcastor));
@@ -145,7 +153,8 @@ async function run(
  */
 async function fetchBlocksInWindowAndSubscribeToChanges(sequencer: Contract, provider: providers.JsonRpcProvider) {
   // Fetches the number of blocks the work windows has
-  blocksInWindow = (await sequencer.totalWindowSize()).toNumber();
+  const totalWindowSize: BigNumber = await sequencer.totalWindowSize();
+  blocksInWindow = totalWindowSize.toNumber();
 
   provider.on(sequencer.filters.AddNetwork(), (eventData) => {
     const window = defaultAbiCoder.decode(['bytes32', 'uint256'], eventData.data)[1] as BigNumber;
@@ -159,7 +168,8 @@ async function fetchBlocksInWindowAndSubscribeToChanges(sequencer: Contract, pro
  */
 async function fetchJobsAndSubscribeToChanges(sequencer: Contract, provider: providers.JsonRpcProvider) {
   // Amount of workable jobs
-  const jobAmount: number = (await sequencer.numJobs()).toNumber();
+  const numberJobs: BigNumber = await sequencer.numJobs();
+  const jobAmount: number = numberJobs.toNumber();
 
   // Array of promises to fetch every workable job address
   const jobAddressPromises: Array<Promise<string>> = [];

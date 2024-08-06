@@ -12,6 +12,9 @@ export const FUTURE_BLOCKS = 0;
 // Priority fee to use
 export const PRIORITY_FEE = 2.1;
 
+// Gas limit to use
+export const GAS_LIMIT = 10_000_000;
+
 // Flashbots RPCs.
 export const FLASHBOTS_RPCS = ['https://rpc.titanbuilder.xyz/', 'https://rpc.beaverbuild.org/'];
 
