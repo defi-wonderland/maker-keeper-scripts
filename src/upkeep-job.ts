@@ -279,9 +279,9 @@ async function tryToWorkJob(job: Contract, block: Block, flashbots: Flashbots) {
  */
 async function fetchBlocksInWindowAndSubscribeToChanges() {
   // Fetches the number of blocks the work windows has
-  blocksInWindow = (await sequencer.window()).toNumber();
+  blocksInWindow = (await sequencer.totalWindowSize()).toNumber();
 
-  provider.on(sequencer.filters.File(), (eventData) => {
+  provider.on(sequencer.filters.AddNetwork(), (eventData) => {
     const window = defaultAbiCoder.decode(['bytes32', 'uint256'], eventData.data)[1] as BigNumber;
     blocksInWindow = window.toNumber();
   });
