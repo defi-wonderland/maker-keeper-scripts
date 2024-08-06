@@ -11,7 +11,7 @@
  *
  * @returns Number representing the next block number in which the keeper is master.
  */
-export function calculateNextMasterWindow(blockNumber: number, blocksInWindow: number, networksAmount: number, mainPosition: number): number {
+export function calculateNextMainWindow(blockNumber: number, blocksInWindow: number, networksAmount: number, mainPosition: number): number {
   const fullWindow = blocksInWindow * networksAmount;
   const offset = mainPosition * blocksInWindow;
   const timesPassedByActiveNetwork = Math.ceil((blockNumber - offset) / fullWindow);

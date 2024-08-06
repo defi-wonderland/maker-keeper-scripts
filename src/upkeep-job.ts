@@ -6,7 +6,7 @@ import type {BigNumber} from 'ethers';
 import {Contract, providers, Wallet} from 'ethers';
 import {defaultAbiCoder} from 'ethers/lib/utils';
 import {BLOCK_DURATION, FLASHBOTS_RPCS, KEEP3R_NETWORK_TAG, MAKER_JOB_ABI_LIKE, PRIORITY_FEE, TOLERANCE_THRESHOLD} from './utils/contants';
-import {calculateNextMasterWindow} from './utils/misc';
+import {calculateNextMainWindow} from './utils/misc';
 import type {Address} from './utils/types';
 
 /*
@@ -97,7 +97,7 @@ async function run(
   const currentBlock = await provider.getBlock('latest');
 
   // Calculates the first block of our next work window
-  const windowStart = calculateNextMasterWindow(currentBlock.number, blocksInWindow, networksAmount, keep3rSequencerPosition);
+  const windowStart = calculateNextMainWindow(currentBlock.number, blocksInWindow, networksAmount, keep3rSequencerPosition);
 
   // Calculates the last block of our next work window
   const windowEnd = windowStart + blocksInWindow;
