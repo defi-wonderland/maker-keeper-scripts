@@ -9,8 +9,6 @@ import {BLOCK_DURATION, FLASHBOTS_RPCS, KEEP3R_NETWORK_TAG, MAKER_JOB_ABI_LIKE, 
 import {calculateNextMasterWindow} from './utils/misc';
 import type {Address} from './utils/types';
 
-dotenv.config();
-
 /*
 	First of all it is very important to explain a little bit about how MakerDAO's Upkeep job works. One of the key elements
 	to address is that this job can be worked by a list of whitelisted keepers called networks. Each of them is gonna
@@ -91,6 +89,10 @@ async function run(
     return;
   }
 
+  await fetchBlocksInWindowAndSubscribeToChanges(sequencer, provider);
+  await fetchJobsAndSubscribeToChanges(sequencer, provider);
+  await fetchNetworksAndSubscribeToChanges(sequencer, provider);
+
   // Fetches current block number
   const currentBlock = await provider.getBlock('latest');
 
@@ -116,10 +118,6 @@ async function run(
 
   const blockListener = new BlockListener(provider);
 
-  fetchBlocksInWindowAndSubscribeToChanges(sequencer, provider);
-  fetchJobsAndSubscribeToChanges(sequencer, provider);
-  fetchNetworksAndSubscribeToChanges(sequencer, provider);
-
   // When time elapses, create a subscription and start listening to upcoming blocks.
   blockListener.stream(async (block) => {
     // If the current block is previous to the window start block, the script will stop and wait for the next block.
@@ -132,7 +130,7 @@ async function run(
     const jobWorkPromises = Object.keys(jobs).map(async (jobAddress) => {
       const job = new Contract(jobAddress, MAKER_JOB_ABI_LIKE, provider);
       const [workable, args] = await job.workable(KEEP3R_NETWORK_TAG);
-      if (!workable) {
+      if (workable) {
         await broadcastMethod({jobContract: upkeepJob, workMethod, workArguments: [jobAddress, args], block});
       }
     });
@@ -167,13 +165,7 @@ async function fetchJobsAndSubscribeToChanges(sequencer: Contract, provider: pro
   const jobAddressPromises: Array<Promise<string>> = [];
   for (let index = 0; index < jobAmount; index++) {
     const jobAddress = await sequencer.jobAt(index);
-    if (await sequencer.hasJob(jobAddress)) {
-      console.log('job', jobAddress);
-      jobAddressPromises.push(jobAddress);
-    }
-    else {
-      console.log('not a job', jobAddress);
-    }
+    jobAddressPromises.push(jobAddress);
   }
 
   // Fetches every workable job address
@@ -207,7 +199,8 @@ async function fetchNetworksAndSubscribeToChanges(sequencer: Contract, provider:
 }
 
 async function fetchAndUpdateNetworksData(sequencer: Contract, provider: providers.JsonRpcProvider) {
-  networksAmount = (await sequencer.numNetworks()).toNumber();
+  const numberNetworks = await sequencer.numNetworks();
+  networksAmount = numberNetworks.toNumber();
 
   for (let index = 0; index < networksAmount; index++) {
     const network = await sequencer.networkAt(index);
