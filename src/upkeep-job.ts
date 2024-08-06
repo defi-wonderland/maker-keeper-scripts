@@ -149,7 +149,7 @@ async function fetchBlocksInWindowAndSubscribeToChanges(sequencer: Contract, pro
   // Fetches the number of blocks the work windows has
   blocksInWindow = (await sequencer.totalWindowSize()).toNumber();
 
-  provider.on(sequencer.filters.File(), (eventData) => {
+  provider.on(sequencer.filters.AddNetwork(), (eventData) => {
     const window = defaultAbiCoder.decode(['bytes32', 'uint256'], eventData.data)[1] as BigNumber;
     blocksInWindow = window.toNumber();
   });
