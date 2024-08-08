@@ -4,7 +4,7 @@ export default defineConfig({
   contracts: {
     mainnet: {
       upkeepJob: '0x5D469E1ef75507b0E0439667ae45e280b9D81B9C',
-      sequencer: '0x9566eB72e47E3E20643C0b1dfbEe04Da5c7E4732',
+      sequencer: '0x238b4E35dAed6100C6162fAE4510261f88996EC9',
     },
   },
 });
