@@ -1,11 +1,3 @@
-import process from 'node:process';
-
-export function getEnvVariable(name: string): string {
-  const value: string | undefined = process.env[name];
-  if (!value) throw new Error(`Environment variable ${name} not found`);
-  return value;
-}
-
 /**
  *
  * @notice Calculates the next block number in which the keeper is master.
@@ -19,7 +11,7 @@ export function getEnvVariable(name: string): string {
  *
  * @returns Number representing the next block number in which the keeper is master.
  */
-export function calculateNextMasterWindow(blockNumber: number, blocksInWindow: number, networksAmount: number, mainPosition: number): number {
+export function calculateNextMainWindow(blockNumber: number, blocksInWindow: number, networksAmount: number, mainPosition: number): number {
   const fullWindow = blocksInWindow * networksAmount;
   const offset = mainPosition * blocksInWindow;
   const timesPassedByActiveNetwork = Math.ceil((blockNumber - offset) / fullWindow);
